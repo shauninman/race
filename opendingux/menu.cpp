@@ -183,11 +183,11 @@ typedef struct {
 } MENU;
 
 char mnuYesNo[2][16] = {"no", "yes"};
-char mnuRatio[3][16] = { "Original show","1.5x","Full screen"};
+char mnuRatio[3][16] = { "Original size","1.5x","Full screen"};
 char mnuLang[2][16] = { "Japanese","English"};
 
-char mnuButtons[7][16] = {
-  "Up","Down","Left","Right","But #1","But #2", "Options"
+char mnuButtons[8][16] = {
+  "Up","Down","Left","Right","A","B","Option","Nothing"
 };
 char mnuStates[9][16] = {"Slot 1", "Slot 2", "Slot 3", "Slot 4", "Slot 5", "Slot 6", "Slot 7", "Slot 8", "Slot 9" };
 
@@ -207,14 +207,14 @@ MENUITEM MainMenuItems[] = {
 MENU mnuMainMenu = { 9, 0, (MENUITEM *) &MainMenuItems };
 
 MENUITEM ConfigMenuItems[] = {
-	{"Button A: ", (int *) &GameConf.OD_Joy[4], 6, (char *)  &mnuButtons, NULL},
-	{"Button B: ", (int *) &GameConf.OD_Joy[5], 6, (char *)  &mnuButtons, NULL},
-	{"Button X: ", (int *) &GameConf.OD_Joy[6], 6, (char *)  &mnuButtons, NULL},
-	{"Button Y: ", (int *) &GameConf.OD_Joy[7], 6, (char *)  &mnuButtons, NULL},
-	{"Button R: ", (int *) &GameConf.OD_Joy[8], 6, (char *)  &mnuButtons, NULL},
-	{"Button L: ", (int *) &GameConf.OD_Joy[9], 6, (char *)  &mnuButtons, NULL},
-	{"START   : ", (int *) &GameConf.OD_Joy[10], 6, (char *) &mnuButtons, NULL},
-	{"SELECT  : ", (int *) &GameConf.OD_Joy[11], 6, (char *) &mnuButtons, NULL},
+	{"Button A: ", (int *) &GameConf.OD_Joy[4],  7, (char *)  &mnuButtons, NULL},
+	{"Button B: ", (int *) &GameConf.OD_Joy[5],  7, (char *)  &mnuButtons, NULL},
+	{"Button X: ", (int *) &GameConf.OD_Joy[6],  7, (char *)  &mnuButtons, NULL},
+	{"Button Y: ", (int *) &GameConf.OD_Joy[7],  7, (char *)  &mnuButtons, NULL},
+	{"Button R: ", (int *) &GameConf.OD_Joy[8],  7, (char *)  &mnuButtons, NULL},
+	{"Button L: ", (int *) &GameConf.OD_Joy[9],  7, (char *)  &mnuButtons, NULL},
+	{"START   : ", (int *) &GameConf.OD_Joy[10], 7, (char *) &mnuButtons, NULL},
+	{"SELECT  : ", (int *) &GameConf.OD_Joy[11], 7, (char *) &mnuButtons, NULL},
 	{"Return to menu", NULL, 0, NULL, &menuReturn},
 };
 MENU mnuConfigMenu = { 9, 0, (MENUITEM *) &ConfigMenuItems };
@@ -997,13 +997,13 @@ void system_loadcfg(char *cfg_name) {
   }
   else {
 	  // UP  DOWN  LEFT RIGHT  A  B  X  Y  R  L  START  SELECT
-	  //  0,    1,    2,    3, 4, 5, 4, 5, 4, 5,     6,      6
+	  //  0,    1,    2,    3, 4, 5, 7, 7, 7, 7,     6,      7
 		GameConf.OD_Joy[ 0] = 0;  GameConf.OD_Joy[ 1] = 1;
 		GameConf.OD_Joy[ 2] = 2;  GameConf.OD_Joy[ 3] = 3;
 		GameConf.OD_Joy[ 4] = 4;  GameConf.OD_Joy[ 5] = 5;
-		GameConf.OD_Joy[ 6] = 4;  GameConf.OD_Joy[ 7] = 5;
-		GameConf.OD_Joy[ 8] = 4;  GameConf.OD_Joy[ 9] = 5;
-		GameConf.OD_Joy[10] = 6;  GameConf.OD_Joy[11] = 6;
+		GameConf.OD_Joy[ 6] = 7;  GameConf.OD_Joy[ 7] = 7;
+		GameConf.OD_Joy[ 8] = 7;  GameConf.OD_Joy[ 9] = 7;
+		GameConf.OD_Joy[10] = 6;  GameConf.OD_Joy[11] = 7;
 	   
 //		GameConf.sndLevel=40;
 		GameConf.m_ScreenRatio=1; // 0 = original size, 1 = 1.5x, 2 = full screen
