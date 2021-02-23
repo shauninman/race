@@ -923,8 +923,7 @@ void menuSaveBmp(void) {
 	}
 }
 
-// Save current state of game emulated
-void menuSaveState(void) {
+void save_state(int state) {
     char szFile[512];
 	
 	if (cartridge_IsLoaded()) {
@@ -934,18 +933,22 @@ void menuSaveState(void) {
 		sprintf(szFile,"%s\\.race-od\\%s",getenv("HOME"),strrchr(gameName,'\\')+1);
 #endif
 		strcpy(strrchr(szFile, '.'), ".sta");
-		sprintf(szFile, "%s%d", szFile, cur_state);
+		sprintf(szFile, "%s%d", szFile, state);
 		print_string("Saving...", COLOR_OK, COLOR_BG, 8,240-5 -10*3);
 		state_store(szFile);
-		menuContinue();
 //		print_string("Save OK",COLOR_OK,COLOR_BG, 8+10*8,240-5 -10*3);
 //		screen_flip();
 //		screen_waitkey();
 	}
 }
 
-// Load current state of game emulated
-void menuLoadState(void) {
+// Save current state of game emulated
+void menuSaveState(void) {
+	save_state(cur_state);
+	menuContinue();
+}
+
+void load_state(int state) {
     char szFile[512];
 	
 	if (cartridge_IsLoaded()) {
@@ -955,16 +958,21 @@ void menuLoadState(void) {
 		sprintf(szFile,"%s\\.race-od\\%s",getenv("HOME"),strrchr(gameName,'\\')+1);
 #endif
 		strcpy(strrchr(szFile, '.'), ".sta");
-		sprintf(szFile, "%s%d", szFile, cur_state);
-		print_string("Loading...", COLOR_OK, COLOR_BG, 8,240-5 -10*3);
+		sprintf(szFile, "%s%d", szFile, state);
+		// print_string("Loading...", COLOR_OK, COLOR_BG, 8,240-5 -10*3);
 		state_restore(szFile);
-		menuContinue();
 //		print_string("Load OK",COLOR_OK,COLOR_BG, 8+10*8,240-5 -10*3);
 //		screen_flip();
 //		screen_waitkey();
 //		gameMenu=false;
 //		m_Flag = GF_GAMERUNNING;
 	}
+}
+
+// Load current state of game emulated
+void menuLoadState(void) {
+	load_state(cur_state);
+	menuContinue();
 }
 
 // Go back to menu

@@ -1,6 +1,15 @@
 #include  <sys/time.h>
 
 #include "shared.h"
+
+extern "C"
+{
+	#include <mmenu.h>
+}
+
+extern void ClearInputState();
+
+
 unsigned int m_Flag;
 unsigned int interval;
 
@@ -222,17 +231,48 @@ int main(int argc, char *argv[]) {
 		strcpy(gameName,argv[1]);
 		m_Flag = GF_GAMEINIT;
 	}
+	
+	char save_path[256];
+	sprintf(save_path,"%s/.race-od/%s",getenv("HOME"),strrchr(gameName,'/')+1);
+	strcpy(strrchr(save_path, '.'), ".sta%i");
 
 	while (m_Flag != GF_GAMEQUIT) {
 		switch (m_Flag) {
-			case GF_MAINUI:
+			case GF_MAINUI: {
 				SDL_PauseAudio(1);
-				screen_showtopmenu();
+				
+				MenuReturnStatus status = ShowMenu(gameName, save_path, actualScreen, kMenuEventKeyUp);
+				SDL_Delay(250);
+				
+				if (status==kStatusExitGame) {
+					m_Flag = GF_GAMEQUIT;
+					SDL_FillRect(actualScreen, NULL, 0);
+					SDL_Flip(actualScreen);
+				}
+				else if (status==kStatusOpenMenu) {
+					screen_showtopmenu();
+				}
+				else if (status>=kStatusLoadSlot) {
+					int slot = status - kStatusLoadSlot;
+					load_state(slot);
+				}
+				else if (status>=kStatusSaveSlot) {
+					int slot = status - kStatusSaveSlot;
+					save_state(slot);
+				}
+				
+				if (status<kStatusOpenMenu) {
+					m_bIsActive = TRUE;
+					m_Flag = GF_GAMERUNNING;
+					SDL_FillRect(actualScreen, NULL, 0);
+					SDL_Flip(actualScreen);
+				}
+				
 				if (cartridge_IsLoaded()) {
 					SDL_PauseAudio(0);
 					nextTick = SDL_UXTimerRead() + interval;
 				}
-				break;
+			} break;
 
 			case GF_GAMEINIT:
 			    system_sound_chipreset();	//Resets chips

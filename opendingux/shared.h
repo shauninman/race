@@ -91,6 +91,9 @@ extern void tlcs_execute(int cycles);
 
 extern void mainemuinit();
 
+extern void load_state(int state);
+extern void save_state(int state);
+
 // menu
 extern void screen_showtopmenu(void);
 extern void print_string_video(int x, int y, const char *s);
