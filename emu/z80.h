@@ -24,8 +24,13 @@ void z80Init();
 void z80Interrupt(int prio);
 void z80UnInterrupt(int kind);
 int z80Step();
-void z80Print(FILE *output);
+//void z80Print(FILE *output);
 void z80orIFF(unsigned char bits);
 
+extern	unsigned short	z80Regs[12];	// Z80 CPU registers
+extern	unsigned char	Z80R;		// the R register incremented with every opcode fetch
+extern	unsigned char	Z80RH;		// used to store high order bit for R registers
+extern	unsigned char	Z80IFF;		// the interrupt flip flops
+extern	unsigned char	Z80IM;		// the interrupt mode as set by the IM instruction
 
 #endif // !defined(AFX_Z80_H__28525BE2_C77A_11D3_8645_00A0241D2A65__INCLUDED_)

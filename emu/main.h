@@ -81,7 +81,7 @@ typedef struct {
 #define NGP				0x01
 #define NGPC			0x02
 
-#define NR_OF_SYSTEMS	2
+#define NR_OF_SYSTEMS	3
 
 
 extern BOOL		m_bIsActive;

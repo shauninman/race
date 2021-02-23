@@ -8954,9 +8954,9 @@ int ngOverflow = 0;
 #endif
 
 #ifdef AUTO_FRAMESKIP
-inline void tlcs_execute(int cycles, int skipFrames)// skipFrames=how many frames to skip for each frame rendered
+void tlcs_execute(int cycles, int skipFrames)// skipFrames=how many frames to skip for each frame rendered
 #else
-inline void tlcs_execute(int cycles)
+void tlcs_execute(int cycles)
 #endif
 {
     int elapsed;

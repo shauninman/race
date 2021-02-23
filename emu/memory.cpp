@@ -271,6 +271,12 @@ const unsigned char ngpcpuram[256] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
+// Metal Slug - 2nd Mission oddly relies on a specific character RAM pattern.
+const unsigned char char_data[64] = {
+ 	255, 63, 255, 255, 0, 252, 255, 255, 255, 63, 3, 0, 255, 255, 255, 255, 
+ 	240, 243, 252, 243, 255, 3, 255, 195, 255, 243, 243, 243, 240, 243, 240, 195, 
+	207, 15, 207, 15, 207, 15, 207, 207, 207, 255, 207, 255, 207, 255, 207, 63, 
+	255, 192, 252, 195, 240, 207, 192, 255, 192, 255, 240, 207, 252, 195, 255, 192 };
 
 const unsigned char ngpInterruptCode[] = {
 	0x07,					// RETI
@@ -442,7 +448,7 @@ void mem_init()
             mainram[0x6F84-0x4000] = 0x40; // "Power On" startup
             mainram[0x6F85-0x4000] = 0x00; // No shutdown request
             mainram[0x6F86-0x4000] = 0x00; // No user answer (?)
-            mainram[0x6F87-0x4000] = 0x01; //English
+            mainram[0x6F87-0x4000] = 0x01; // 00:Japanese 01:English
         }
 		else
 		{
@@ -488,9 +494,10 @@ void mem_init()
             mainram[0x6F84-0x4000] = 0x40; // "Power On" startup
             mainram[0x6F85-0x4000] = 0x00; // No shutdown request
             mainram[0x6F86-0x4000] = 0x00; // No user answer (?)
-
-            mainram[0x6F87-0x4000] = 0x01; //English
+            mainram[0x6F87-0x4000] = 0x01; // 00:Japanese 01:English
 		}
+
+        for(i=0; i<sizeof(char_data); i++) { mainram[0xA1C0-0x4000+i] = char_data[i]; }
 
         mainram[0x4000] = 0xC0;		// Enable generation of VBlanks by default
         mainram[0x4004] = 0xFF;	mainram[0x4005] = 0xFF;

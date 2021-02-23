@@ -207,7 +207,8 @@ void setupNGFfilename()
     }
 
 #ifdef TARGET_OD
-	strcpy(ngfFilename, m_emuInfo.RomFileName);
+	sprintf(ngfFilename,"%s/.race-od/%s",getenv("HOME"),strrchr(m_emuInfo.RomFileName,'/')+1);
+//	strcpy(ngfFilename, m_emuInfo.RomFileName);
 #else
     strcpy(ngfFilename, SAVEGAME_DIR);
 

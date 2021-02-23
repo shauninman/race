@@ -1,6 +1,8 @@
 #include <dirent.h>
 
 #include "shared.h"
+#include "../emu/state.h"
+int cur_state = 0;
 
 #include "./data/race_background.h"
 #include "./data/race_load.h"
@@ -16,8 +18,8 @@ bool gameMenu;
 #define COLOR_KO			PIX_TO_RGB(layer->format,255,0,0)
 #define COLOR_INFO			PIX_TO_RGB(layer->format,0,255,0)
 #define COLOR_LIGHT			PIX_TO_RGB(layer->format,255,255,0)
-#define COLOR_ACTIVE_ITEM   PIX_TO_RGB(layer->format,232, 253, 77)
-#define COLOR_INACTIVE_ITEM PIX_TO_RGB(layer->format,67,89,153)
+#define COLOR_ACTIVE_ITEM   PIX_TO_RGB(layer->format,255,255,0)
+#define COLOR_INACTIVE_ITEM PIX_TO_RGB(layer->format,64, 240, 96)
 
 // Font: THIN8X8.pf : Exported from PixelFontEdit 2.7.0
 static const unsigned char fontdata8x8[2048] =
@@ -181,23 +183,28 @@ typedef struct {
 } MENU;
 
 char mnuYesNo[2][16] = {"no", "yes"};
-char mnuRatio[2][16] = { "Original show","Full screen"};
+char mnuRatio[3][16] = { "Original show","1.5x","Full screen"};
+char mnuLang[2][16] = { "Japanese","English"};
 
 char mnuButtons[7][16] = {
   "Up","Down","Left","Right","But #1","But #2", "Options"
 };
+char mnuStates[9][16] = {"Slot 1", "Slot 2", "Slot 3", "Slot 4", "Slot 5", "Slot 6", "Slot 7", "Slot 8", "Slot 9" };
 
 MENUITEM MainMenuItems[] = {
 	{"Load rom", NULL, 0, NULL, &menuFileBrowse},
-	{"Continue", NULL, 0, NULL, &menuContinue},
-	{"Reset", NULL, 0, NULL, &menuReset},
-	{"Ratio: ", (int *) &GameConf.m_ScreenRatio, 1, (char *) &mnuRatio, NULL},
+	//{"Continue", NULL, 0, NULL, &menuContinue},
+	{"Load state: ", (int*)&cur_state, 8, (char*)&mnuStates, &menuLoadState},
+	{"Save state: ", (int*)&cur_state, 8, (char*)&mnuStates, &menuSaveState},
+	{"Ratio: ", (int *) &GameConf.m_ScreenRatio, 2, (char *) &mnuRatio, NULL},
 	{"Button Settings", NULL, 0, NULL, &screen_showkeymenu},
-	{"Take Screenshot", NULL, 0, NULL, &menuSaveBmp},
+	//{"Take Screenshot", NULL, 0, NULL, &menuSaveBmp},
 	{"Show FPS: ", (int *) &GameConf.m_DisplayFPS, 1,(char *) &mnuYesNo, NULL},
+	{"Language: ", (int *) &GameConf.m_Language, 1,(char *) &mnuLang, NULL},
+	{"Reset", NULL, 0, NULL, &menuReset},
 	{"Exit", NULL, 0, NULL, &menuQuit}
 };
-MENU mnuMainMenu = { 8, 0, (MENUITEM *) &MainMenuItems };
+MENU mnuMainMenu = { 9, 0, (MENUITEM *) &MainMenuItems };
 
 MENUITEM ConfigMenuItems[] = {
 	{"Button A: ", (int *) &GameConf.OD_Joy[4], 6, (char *)  &mnuButtons, NULL},
@@ -269,7 +276,7 @@ void screen_showchar(SDL_Surface *s, int x, int y, unsigned char a, int fg_color
 	unsigned short *dst;
 	int w, h;
 
-	//if(SDL_MUSTLOCK(s)) SDL_LockSurface(s);
+	if(SDL_MUSTLOCK(s)) SDL_LockSurface(s);
 	for(h = 8; h; h--) {
 		dst = (unsigned short *)s->pixels + (y+8-h)*s->w + x;
 		for(w = 8; w; w--) {
@@ -278,7 +285,7 @@ void screen_showchar(SDL_Surface *s, int x, int y, unsigned char a, int fg_color
 			*dst++ = color;
 		}
 	}
-	//if(SDL_MUSTLOCK(s)) SDL_UnlockSurface(s);
+	if(SDL_MUSTLOCK(s)) SDL_UnlockSurface(s);
 }
 
 // copy-pasted mostly from gpsp emulator by Exophaze. 	thanks for it
@@ -290,6 +297,14 @@ void print_string(const char *s, unsigned short fg_color, unsigned short bg_colo
 void print_string_video(int x, int y, const char *s) {
 	int i, j = strlen(s);
 	for(i = 0; i < j; i++, x += 8) screen_showchar(actualScreen, x, y, s[i], PIX_TO_RGB(actualScreen->format,232, 253, 77), 0);
+}
+
+void print_string_video_for_fps(int x, int y, const char *s) {
+	int i, j = strlen(s);
+	for(i = 0; i < j; i++, x += 8) {
+		screen_showchar(actualScreen, x + 1, y + 1, s[i], PIX_TO_RGB(actualScreen->format, 0, 0, 0), 0);
+		screen_showchar(actualScreen, x, y, s[i], COLOR_ACTIVE_ITEM, PIX_TO_RGB(actualScreen->format, 0, 0, 0));
+	}
 }
 
 void screen_showitem(int x, int y, MENUITEM *m, int fg_color) {
@@ -367,6 +382,17 @@ void screen_waitkeyarelease(void) {
 	while (1) {
 		SDL_PollEvent(&event);
 		keys = SDL_GetKeyState(NULL);
+		if (keys[SDLK_SPACE] != SDL_PRESSED) break;
+	}
+}
+
+void screen_waitkeybrelease(void) {
+	unsigned char *keys;
+		
+	// wait key release and go in menu
+	while (1) {
+		SDL_PollEvent(&event);
+		keys = SDL_GetKeyState(NULL);
 		if (keys[SDLK_LCTRL] != SDL_PRESSED) break;
 	}
 }
@@ -401,7 +427,7 @@ void screen_showmainmenu(MENU *menu) {
 		mi = menu->m + menu->itemCur; // pointer to highlit menu option
 
 		// A - apply parameter or enter submenu
-		if (keys[SDLK_LCTRL] == SDL_PRESSED) { 
+		if (keys[SDLK_SPACE] == SDL_PRESSED) { 
 			if (!keya) {
 				keya = 1; 
 				screen_waitkeyarelease();
@@ -411,9 +437,15 @@ void screen_showmainmenu(MENU *menu) {
 		else keya=0;
 
 		// B - exit or back to previous menu
-		if (keys[SDLK_LALT] == SDL_PRESSED) { 
+		if (keys[SDLK_LCTRL] == SDL_PRESSED) { 
 			if (!keyb) {
-				keyb = 1; if (menu != &mnuMainMenu) gameMenu = false;
+				keyb = 1;
+				screen_waitkeybrelease();
+				if (menu == &mnuMainMenu) menuContinue();
+				else {
+					menu = &mnuMainMenu;
+					gameMenu = true;
+				}
 			}
 		}
 		else keyb=0;
@@ -494,8 +526,10 @@ void screen_showkeymenu(void) {
 
 // Menu function that runs main top menu
 void screen_showtopmenu(void) {
+	actualScreen = SDL_SetVideoMode(320, 240, 16, SDL_DOUBLEBUF | SDL_HWSURFACE );
+
 	// Save screen in layer
-	SDL_BlitSurface(actualScreen, 0, layerback, 0);
+//	SDL_BlitSurface(actualScreen, 0, layerback, 0);
 	screen_prepbackground();
 
 	// Display and manage main menu
@@ -505,11 +539,19 @@ void screen_showtopmenu(void) {
 	system_savecfg(current_conf_app);
 
 	// if no ratio, put skin
-	if (!GameConf.m_ScreenRatio) {
-		screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
-		SDL_Flip(actualScreen);
-		screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
-		SDL_Flip(actualScreen);
+	switch (GameConf.m_ScreenRatio) {
+		case 0:
+			screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
+			SDL_Flip(actualScreen);
+			screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
+			SDL_Flip(actualScreen);
+			break;
+		case 1:
+			SDL_FillRect(actualScreen, NULL, COLOR_BG);
+			SDL_Flip(actualScreen);
+			SDL_FillRect(actualScreen, NULL, COLOR_BG);
+			SDL_Flip(actualScreen);
+			break;
 	}
 }
 
@@ -519,7 +561,11 @@ int system_is_load_state(void) {
 	int fd;
 	int n=0;
   
-	strcpy(name, gameName);
+#ifdef _OPENDINGUX_
+		sprintf(name,"%s/.race-od/%s",getenv("HOME"),strrchr(gameName,'/')+1);
+#else
+		sprintf(name,"%s\\.race-od\\%s",getenv("HOME"),strrchr(gameName,'\\')+1);
+#endif
 	strcpy(strrchr(name, '.'), ".sta");
 
 	fd = open(name, O_RDONLY | O_BINARY);
@@ -728,7 +774,7 @@ signed int load_file(char **wildcards, char *result) {
 			keys = SDL_GetKeyState(NULL);
 
 			// A - choose file or enter directory
-			if (keys[SDLK_LCTRL] == SDL_PRESSED) { 
+			if (keys[SDLK_SPACE] == SDL_PRESSED) { 
 				if (!keya) {
 					keya = 1; 
 					screen_waitkeyarelease();
@@ -750,9 +796,10 @@ signed int load_file(char **wildcards, char *result) {
 			else keya=0;
 
 			// B - exit or back to previous menu
-			if (keys[SDLK_LALT] == SDL_PRESSED) { 
+			if (keys[SDLK_LCTRL] == SDL_PRESSED) { 
 				if (!keyb) {
 					keyb = 1; 
+					screen_waitkeybrelease();
 					return_value = -1;
 					repeat = 0;
 				}
@@ -834,7 +881,7 @@ signed int load_file(char **wildcards, char *result) {
 	if (return_value != -1) {
 		strcpy(GameConf.current_dir_rom,current_dir_name);
 	}
-	
+
 	return return_value;
 }
 
@@ -853,9 +900,9 @@ void menuSaveBmp(void) {
 	
 	if (cartridge_IsLoaded()) {
 #ifdef _OPENDINGUX_
-		sprintf(szFile,"./%s",strrchr(gameName,'/')+1);
+		sprintf(szFile,"%s/.race-od/%s",getenv("HOME"),strrchr(gameName,'/')+1);
 #else
-		sprintf(szFile,".\\%s",strrchr(gameName,'\\')+1);
+		sprintf(szFile,"%s\\.race-od\\%s",getenv("HOME"),strrchr(gameName,'\\')+1);
 #endif
 		szFile[strlen(szFile)-8] = '%';
 		szFile[strlen(szFile)-7] = '0';
@@ -869,7 +916,7 @@ void menuSaveBmp(void) {
 		print_string("Saving...", COLOR_OK, COLOR_BG, 8,240-5 -10*3);
 		screen_flip();
 		findNextFilename(szFile,szFile1);
-		SDL_SaveBMP(layerback, szFile1);
+		SDL_SaveBMP(layerback, szFile);
 		print_string("Screen saved !", COLOR_OK, COLOR_BG, 8+10*8,240-5 -10*3);
 		screen_flip();
 		screen_waitkey();
@@ -881,13 +928,19 @@ void menuSaveState(void) {
     char szFile[512];
 	
 	if (cartridge_IsLoaded()) {
-		strcpy(szFile, gameName);
+#ifdef _OPENDINGUX_
+		sprintf(szFile,"%s/.race-od/%s",getenv("HOME"),strrchr(gameName,'/')+1);
+#else
+		sprintf(szFile,"%s\\.race-od\\%s",getenv("HOME"),strrchr(gameName,'\\')+1);
+#endif
 		strcpy(strrchr(szFile, '.'), ".sta");
+		sprintf(szFile, "%s%d", szFile, cur_state);
 		print_string("Saving...", COLOR_OK, COLOR_BG, 8,240-5 -10*3);
-		//state_store(szFile);
-		print_string("Save OK",COLOR_OK,COLOR_BG, 8+10*8,240-5 -10*3);
-		screen_flip();
-		screen_waitkey();
+		state_store(szFile);
+		menuContinue();
+//		print_string("Save OK",COLOR_OK,COLOR_BG, 8+10*8,240-5 -10*3);
+//		screen_flip();
+//		screen_waitkey();
 	}
 }
 
@@ -896,15 +949,21 @@ void menuLoadState(void) {
     char szFile[512];
 	
 	if (cartridge_IsLoaded()) {
-		strcpy(szFile, gameName);
+#ifdef _OPENDINGUX_
+		sprintf(szFile,"%s/.race-od/%s",getenv("HOME"),strrchr(gameName,'/')+1);
+#else
+		sprintf(szFile,"%s\\.race-od\\%s",getenv("HOME"),strrchr(gameName,'\\')+1);
+#endif
 		strcpy(strrchr(szFile, '.'), ".sta");
+		sprintf(szFile, "%s%d", szFile, cur_state);
 		print_string("Loading...", COLOR_OK, COLOR_BG, 8,240-5 -10*3);
-		//state_restore(szFile);
-		print_string("Load OK",COLOR_OK,COLOR_BG, 8+10*8,240-5 -10*3);
-		screen_flip();
-		screen_waitkey();
-		gameMenu=false;
-		m_Flag = GF_GAMERUNNING;
+		state_restore(szFile);
+		menuContinue();
+//		print_string("Load OK",COLOR_OK,COLOR_BG, 8+10*8,240-5 -10*3);
+//		screen_flip();
+//		screen_waitkey();
+//		gameMenu=false;
+//		m_Flag = GF_GAMERUNNING;
 	}
 }
 
@@ -921,12 +980,20 @@ void system_loadcfg(char *cfg_name) {
   if (fd >= 0) {
 	read(fd, &GameConf, sizeof(GameConf));
     close(fd);
-	if (!GameConf.m_ScreenRatio) {
-		screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
-		SDL_Flip(actualScreen);
-		screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
-		SDL_Flip(actualScreen);
-	}
+//	switch (GameConf.m_ScreenRatio) {
+//		case 0:
+//			screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
+//			SDL_Flip(actualScreen);
+//			screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
+//			SDL_Flip(actualScreen);
+//			break;
+//		case 1:
+//			SDL_FillRect(actualScreen, NULL, COLOR_BG);
+//			SDL_Flip(actualScreen);
+//			SDL_FillRect(actualScreen, NULL, COLOR_BG);
+//			SDL_Flip(actualScreen);
+//			break;
+//	}
   }
   else {
 	  // UP  DOWN  LEFT RIGHT  A  B  X  Y  R  L  START  SELECT
@@ -938,9 +1005,10 @@ void system_loadcfg(char *cfg_name) {
 		GameConf.OD_Joy[ 8] = 4;  GameConf.OD_Joy[ 9] = 5;
 		GameConf.OD_Joy[10] = 6;  GameConf.OD_Joy[11] = 6;
 	   
-		GameConf.sndLevel=40;
+//		GameConf.sndLevel=40;
 		GameConf.m_ScreenRatio=1; // 0 = original show, 1 = full screen
 		GameConf.m_DisplayFPS=1; // 0 = no
+		GameConf.m_Language=1; // 0 = Japanese
 		getcwd(GameConf.current_dir_rom, MAX__PATH);
 	}
 }

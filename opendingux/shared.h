@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <SDL/SDL.h>
+#include <SDL/SDL_image.h>
 
 #include "../emu/StdAfx.h"
 #include "../emu/main.h"
@@ -22,6 +23,9 @@
 
 #define SYSVID_WIDTH	160
 #define SYSVID_HEIGHT	152
+
+#define BLIT_WIDTH  160
+#define BLIT_HEIGHT 152
 
 #define GF_GAMEINIT    1
 #define GF_MAINUI      2
@@ -42,7 +46,7 @@ extern void writeSaveGameFile();
 #define cartridge_IsLoaded() (m_emuInfo.romSize != 0)
 
 typedef struct {
-  unsigned int sndLevel;
+  unsigned int m_Language;
   unsigned int m_ScreenRatio; // 0 = original show, 1 = full screen
   unsigned int OD_Joy[12]; // each key mapping
   unsigned int m_DisplayFPS;
@@ -90,5 +94,6 @@ extern void mainemuinit();
 // menu
 extern void screen_showtopmenu(void);
 extern void print_string_video(int x, int y, const char *s);
+extern void print_string_video_for_fps(int x, int y, const char *s);
 
 #endif

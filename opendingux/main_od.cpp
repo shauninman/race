@@ -24,58 +24,112 @@ unsigned long SDL_UXTimerRead(void) {
 	return (((tval.tv_sec*1000000) + (tval.tv_usec )));
 }
 
+#define AVERAGE(z, x) ((((z) & 0xF7DEF7DE) >> 1) + (((x) & 0xF7DEF7DE) >> 1))
+#define AVERAGEHI(AB) ((((AB) & 0xF7DE0000) >> 1) + (((AB) & 0xF7DE) << 15))
+#define AVERAGELO(CD) ((((CD) & 0xF7DE) >> 1) + (((CD) & 0xF7DE0000) >> 17))
+
+void upscale_to_x15(uint32_t *dst, uint32_t *src)
+{
+	uint32_t midh = 228 / 2;
+	uint32_t Eh = 0;
+	uint32_t source = 0;
+	uint32_t dh = 0;
+	uint32_t y, x;
+
+	dst += ((320 - 240) + 320 * (240 - 228)) / 4;
+
+	for (y = 0; y < 228; y++)
+	{
+		source = dh * BLIT_WIDTH;
+
+		for (x = 0; x < 240/6; x++)
+		{
+			__builtin_prefetch(dst + 4, 1);
+			__builtin_prefetch(src + source + 4, 0);
+
+			register uint32_t ab = src[source] & 0xF7DEF7DE;
+			register uint32_t cd = src[source + 1] & 0xF7DEF7DE;
+
+			if(Eh >= midh) {
+				ab = AVERAGE(ab, src[source + BLIT_WIDTH]) & 0xF7DEF7DE; // to prevent overflow
+				cd = AVERAGE(cd, src[source + BLIT_WIDTH + 1]) & 0xF7DEF7DE; // to prevent overflow
+			}
+
+			*dst++ = (ab & 0xFFFF) + AVERAGEHI(ab);
+			*dst++ = (ab >> 16) + ((cd & 0xFFFF) << 16);
+			*dst++ = (cd & 0xFFFF0000) + AVERAGELO(cd);
+
+			source += 2;
+		}
+
+		dst += (320 - 240) / 2;
+		Eh += BLIT_HEIGHT; if(Eh >= 228) { Eh -= 228; dh++; }
+	}
+}
+
+void upscale_to_320x240(uint32_t* dst, uint32_t* src)
+{
+	uint32_t midh = 240 / 2;
+	uint32_t Eh = 0;
+	uint32_t source = 0;
+	uint32_t dh = 0;
+	uint32_t i, j;
+
+	for (i = 0; i < 240; i++)
+	{
+		source = dh * BLIT_WIDTH;
+		for (j = 0; j < 320/8; j++)
+		{
+			__builtin_prefetch(dst + 4, 1);
+			__builtin_prefetch(src + source + 4, 0);
+
+			register uint32_t ab = src[source] & 0xF7DEF7DE;
+			register uint32_t cd = src[source + 1] & 0xF7DEF7DE;
+
+			if (Eh >= midh) {
+				ab = AVERAGE(ab, src[source + BLIT_WIDTH]) & 0xF7DEF7DE; // to prevent overflow
+				cd = AVERAGE(cd, src[source + BLIT_WIDTH + 1]) & 0xF7DEF7DE; // to prevent overflow
+			}
+		
+			*dst++ = (ab & 0xFFFF) | (ab << 16);
+			*dst++ = (ab & 0xFFFF0000) | (ab >> 16);
+			*dst++ = (cd & 0xFFFF) | (cd << 16);
+			*dst++ = (cd & 0xFFFF0000) | (cd >> 16);
+
+			source += 2;
+		}
+
+		Eh += BLIT_HEIGHT; if(Eh >= 240) { Eh -= 240; dh++; }
+	}
+}
+
 void graphics_paint(void) {
-	unsigned short *buffer_scr = (unsigned short *) actualScreen->pixels;
-	unsigned short *buffer_flip = (unsigned short *) screen->pixels;
-	unsigned int W,H,ix,iy,x,y, xfp,yfp;
+	unsigned int xfp = 1,yfp = 1;
 	static char buffer[32];
 
 	if(SDL_MUSTLOCK(actualScreen)) SDL_LockSurface(actualScreen);
 	
-	if (GameConf.m_ScreenRatio) { // Full screen
-		x=0;
-		y=0; 
-		W=320;
-		H=240;
-		ix=(SYSVID_WIDTH<<16)/W;
-		iy=(SYSVID_HEIGHT<<16)/H;
-		xfp = 300;yfp = 1;
+	switch (GameConf.m_ScreenRatio) {
+		case 2: // Full screen
+			upscale_to_320x240((uint32_t*)actualScreen->pixels, (uint32_t*)screen->pixels);
+			break;
+		case 1: // x1.5
+			xfp = (320 - 240) / 2;
+			yfp = (240 - 228) / 2;
+			upscale_to_x15((uint32_t*)actualScreen->pixels, (uint32_t*)screen->pixels);
+			break;
+		default: // Original
+			xfp = (actualScreen->w - BLIT_WIDTH) / 2;
+			yfp = (actualScreen->h - BLIT_HEIGHT) / 2;
 
-		do   
-		{
-			unsigned short *buffer_mem=(buffer_flip+((y>>16)*320));
-			W=320; x=0;
-			do {
-				*buffer_scr++=buffer_mem[x>>16];
-				x+=ix;
-			} while (--W);
-			y+=iy;
-		} while (--H);
-	}
-	else { // Original show
-		#define BLIT_WIDTH (160)
-		#define BLIT_HEIGHT (152)
-		x=((screen->w - BLIT_WIDTH)/2);
-		y=((screen->h - BLIT_HEIGHT)/2); 
-		W=BLIT_WIDTH;
-		H=BLIT_HEIGHT;
-		ix=(BLIT_WIDTH<<16)/W;
-		iy=(SYSVID_HEIGHT<<16)/H;
-		xfp = (x+BLIT_WIDTH)-20;yfp = y+1;
-		
-		buffer_scr += (y)*320;
-		buffer_scr += (x);
-		do   
-		{
-			unsigned short *buffer_mem=(buffer_flip+((y>>16)*320));
-			W=BLIT_WIDTH; x=((screen->w - BLIT_WIDTH)/2);
-			do {
-				*buffer_scr++=buffer_mem[x>>16];
-				x+=ix;
-			} while (--W);
-			y+=iy;
-			buffer_scr += actualScreen->pitch - 320 - BLIT_WIDTH;
-		} while (--H);
+			uint16_t *d = (uint16_t*)actualScreen->pixels + xfp + yfp * actualScreen->pitch / 2 ;
+			uint16_t *s = (uint16_t*)screen->pixels;
+			for (int y = 0; y < BLIT_HEIGHT; y++)
+			{
+				memmove(d, s, BLIT_WIDTH * sizeof(uint16_t));
+				s += 320;	//screen->w;
+				d += 320;	//actualScreen->w;
+			}
 	}
 	
 	pastFPS++;
@@ -88,7 +142,7 @@ void graphics_paint(void) {
 
 	if (GameConf.m_DisplayFPS) {
 		sprintf(buffer,"%02d",FPS);
-		print_string_video(xfp,yfp,buffer);
+		print_string_video_for_fps(xfp + 1,yfp + 1,buffer);
 	}
 		
 	if (SDL_MUSTLOCK(actualScreen)) SDL_UnlockSurface(actualScreen);
@@ -110,14 +164,16 @@ void initSDL(void) {
 	}
 	SDL_ShowCursor(SDL_DISABLE);
 
-    screen = SDL_CreateRGBSurface (actualScreen->flags,
-                                actualScreen->w,
-                                actualScreen->h,
-                                actualScreen->format->BitsPerPixel,
-                                actualScreen->format->Rmask,
-                                actualScreen->format->Gmask,
-                                actualScreen->format->Bmask,
-                                actualScreen->format->Amask);
+	screen = SDL_CreateRGBSurface (actualScreen->flags,
+//		actualScreen->w,
+//		actualScreen->h,
+		BLIT_WIDTH,
+		BLIT_HEIGHT,
+		actualScreen->format->BitsPerPixel,
+		actualScreen->format->Rmask,
+		actualScreen->format->Gmask,
+		actualScreen->format->Bmask,
+		actualScreen->format->Amask);
 								
 	if(screen == NULL) {
 		fprintf(stderr, "Couldn't create surface: %s\n", SDL_GetError());
@@ -148,8 +204,9 @@ int main(int argc, char *argv[]) {
 	double period;
 
 	// Get init file directory & name
-	getcwd(current_conf_app, MAX__PATH);
-	sprintf(current_conf_app,"%s//race.cfg",current_conf_app);
+//	getcwd(current_conf_app, MAX__PATH);
+	snprintf(current_conf_app, sizeof(current_conf_app), "%s/.race-od", getenv("HOME")); mkdir(current_conf_app, 0777);
+	sprintf(current_conf_app,"%s/race.cfg", current_conf_app);
 	
 	// Init graphics & sound
 	initSDL();

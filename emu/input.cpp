@@ -80,16 +80,16 @@ void InitInput()
 BOOL InitInput(HWND hwnd)
 #endif
 {
-#ifdef TARGET_OD
+#ifdef TARGET_OD	// for TRIMUI Modified
 	m_sysInfo[NGP].InputKeys[KEY_UP]			= SDLK_UP;
 	m_sysInfo[NGP].InputKeys[KEY_DOWN]		= SDLK_DOWN;
 	m_sysInfo[NGP].InputKeys[KEY_LEFT]		= SDLK_LEFT;
 	m_sysInfo[NGP].InputKeys[KEY_RIGHT]		= SDLK_RIGHT;
-	m_sysInfo[NGP].InputKeys[KEY_BUTTON_A]	= SDLK_LCTRL;
-	m_sysInfo[NGP].InputKeys[KEY_BUTTON_B]	= SDLK_LALT;
-	m_sysInfo[NGP].InputKeys[KEY_SELECT]		= SDLK_ESCAPE;	// Option button
+	m_sysInfo[NGP].InputKeys[KEY_BUTTON_A]	= SDLK_SPACE;
+	m_sysInfo[NGP].InputKeys[KEY_BUTTON_B]	= SDLK_LCTRL;
+	m_sysInfo[NGP].InputKeys[KEY_SELECT]		= SDLK_RCTRL;	// Option button
 	m_sysInfo[NGP].InputKeys[KEY_START]		= SDLK_RETURN;	// Option button
-	m_sysInfo[NGP].InputKeys[KEY_BUTTON_X]	= SDLK_SPACE;
+	m_sysInfo[NGP].InputKeys[KEY_BUTTON_X]	= SDLK_LALT;
 	m_sysInfo[NGP].InputKeys[KEY_BUTTON_Y]	= SDLK_LSHIFT;
 	m_sysInfo[NGP].InputKeys[KEY_BUTTON_R]	= SDLK_BACKSPACE;
 	m_sysInfo[NGP].InputKeys[KEY_BUTTON_L]	= SDLK_TAB;
@@ -98,11 +98,11 @@ BOOL InitInput(HWND hwnd)
 	m_sysInfo[NGPC].InputKeys[KEY_DOWN]		= SDLK_DOWN;
 	m_sysInfo[NGPC].InputKeys[KEY_LEFT]		= SDLK_LEFT;
 	m_sysInfo[NGPC].InputKeys[KEY_RIGHT]		= SDLK_RIGHT;
-	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_A]	= SDLK_LCTRL;
-	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_B]	= SDLK_LALT;
-	m_sysInfo[NGPC].InputKeys[KEY_SELECT]		= SDLK_ESCAPE;	// Option button
+	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_A]	= SDLK_SPACE;
+	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_B]	= SDLK_LCTRL;
+	m_sysInfo[NGPC].InputKeys[KEY_SELECT]		= SDLK_RCTRL;	// Option button
 	m_sysInfo[NGPC].InputKeys[KEY_START]		= SDLK_RETURN;	// Option button
-	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_X]	= SDLK_SPACE;
+	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_X]	= SDLK_LALT;
 	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_Y]	= SDLK_LSHIFT;
 	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_R]	= SDLK_BACKSPACE;
 	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_L]	= SDLK_TAB;
@@ -264,7 +264,7 @@ void UpdateInputState()
     {
     }
 		
-    if (DOWN(SDLK_ESCAPE) && DOWN(SDLK_RETURN))
+    if (DOWN(SDLK_RCTRL) && DOWN(SDLK_RETURN) || DOWN(SDLK_ESCAPE))
         m_bIsActive = FALSE;//Flavor exit emulation
 
     si = &m_sysInfo[NGP];
