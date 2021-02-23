@@ -1006,8 +1006,8 @@ void system_loadcfg(char *cfg_name) {
 		GameConf.OD_Joy[10] = 6;  GameConf.OD_Joy[11] = 6;
 	   
 //		GameConf.sndLevel=40;
-		GameConf.m_ScreenRatio=1; // 0 = original show, 1 = full screen
-		GameConf.m_DisplayFPS=1; // 0 = no
+		GameConf.m_ScreenRatio=1; // 0 = original size, 1 = 1.5x, 2 = full screen
+		GameConf.m_DisplayFPS=0; // 0 = no
 		GameConf.m_Language=1; // 0 = Japanese
 		getcwd(GameConf.current_dir_rom, MAX__PATH);
 	}
