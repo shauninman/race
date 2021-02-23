@@ -89,8 +89,8 @@ BOOL InitInput(HWND hwnd)
 	m_sysInfo[NGP].InputKeys[KEY_BUTTON_B]	= SDLK_LCTRL;
 	m_sysInfo[NGP].InputKeys[KEY_SELECT]	= SDLK_RCTRL;	// Option button
 	m_sysInfo[NGP].InputKeys[KEY_START]		= SDLK_RETURN;	// Option button
-	m_sysInfo[NGP].InputKeys[KEY_BUTTON_X]	= SDLK_LALT;
-	m_sysInfo[NGP].InputKeys[KEY_BUTTON_Y]	= SDLK_LSHIFT;
+	m_sysInfo[NGP].InputKeys[KEY_BUTTON_X]	= SDLK_LSHIFT;
+	m_sysInfo[NGP].InputKeys[KEY_BUTTON_Y]	= SDLK_LALT;
 	m_sysInfo[NGP].InputKeys[KEY_BUTTON_R]	= SDLK_BACKSPACE;
 	m_sysInfo[NGP].InputKeys[KEY_BUTTON_L]	= SDLK_TAB;
 	
@@ -102,8 +102,8 @@ BOOL InitInput(HWND hwnd)
 	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_B]	= SDLK_LCTRL;
 	m_sysInfo[NGPC].InputKeys[KEY_SELECT]	= SDLK_RCTRL;	// Option button
 	m_sysInfo[NGPC].InputKeys[KEY_START]	= SDLK_RETURN;	// Option button
-	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_X]	= SDLK_LALT;
-	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_Y]	= SDLK_LSHIFT;
+	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_X]	= SDLK_LSHIFT;
+	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_Y]	= SDLK_LALT;
 	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_R]	= SDLK_BACKSPACE;
 	m_sysInfo[NGPC].InputKeys[KEY_BUTTON_L]	= SDLK_TAB;
 #else
