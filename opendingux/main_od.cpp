@@ -242,7 +242,6 @@ int main(int argc, char *argv[]) {
 				SDL_PauseAudio(1);
 				
 				MenuReturnStatus status = ShowMenu(gameName, save_path, actualScreen, kMenuEventKeyDown);
-				SDL_Delay(250);
 				
 				if (status==kStatusExitGame) {
 					m_Flag = GF_GAMEQUIT;
