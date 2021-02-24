@@ -55,8 +55,8 @@ extern int zoom;
 
 SDL_Event event;
 
-const unsigned char keyCoresp[7] = {
-  0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40,
+const unsigned char keyCoresp[8] = {
+  0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80,
 };
 
 
@@ -258,45 +258,109 @@ void UpdateInputState()
         decreaseVolume();*/
 #else
     SYSTEMINFO *si;
-    keystates = SDL_GetKeyState(NULL); //make sure they're updated
-
-    while(SDL_PollEvent(&event))
-    {
-    }
-		
-    if (DOWN(SDLK_ESCAPE))
-        m_bIsActive = FALSE;//Flavor exit emulation
+    // keystates = SDL_GetKeyState(NULL); //make sure they're updated
 
     si = &m_sysInfo[NGP];
-    *InputByte = 0;
+    while(SDL_PollEvent(&event)) {
+		switch(event.type) {
+			case SDL_KEYDOWN: {
+				SDLKey key = event.key.keysym.sym;
+				
+				if (key==SDLK_ESCAPE)
+					m_bIsActive = FALSE;//Flavor exit emulation
+				
+				if (key==si->InputKeys[KEY_BUTTON_A])
+					*InputByte|= keyCoresp[GameConf.OD_Joy[4]];
+				if (key==si->InputKeys[KEY_BUTTON_B])
+					*InputByte|= keyCoresp[GameConf.OD_Joy[5]];
+				if (key==si->InputKeys[KEY_BUTTON_X])
+					*InputByte|= keyCoresp[GameConf.OD_Joy[6]];
+				if (key==si->InputKeys[KEY_BUTTON_Y])
+					*InputByte|= keyCoresp[GameConf.OD_Joy[7]];
+				if (key==si->InputKeys[KEY_BUTTON_R])
+					*InputByte|= keyCoresp[GameConf.OD_Joy[8]];
+				if (key==si->InputKeys[KEY_BUTTON_L])
+					*InputByte|= keyCoresp[GameConf.OD_Joy[9]];
+				
+				if (key==si->InputKeys[KEY_START])
+					*InputByte|= keyCoresp[GameConf.OD_Joy[10]];
+				if (key==si->InputKeys[KEY_SELECT])
+					*InputByte|= keyCoresp[GameConf.OD_Joy[11]];
 
-    if (DOWN(si->InputKeys[KEY_BUTTON_A]))
-        *InputByte|= keyCoresp[GameConf.OD_Joy[4]];
-    if (DOWN(si->InputKeys[KEY_BUTTON_B]))
-        *InputByte|= keyCoresp[GameConf.OD_Joy[5]];
-    if (DOWN(si->InputKeys[KEY_BUTTON_X]))
-        *InputByte|= keyCoresp[GameConf.OD_Joy[6]];
-    if (DOWN(si->InputKeys[KEY_BUTTON_Y]))
-        *InputByte|= keyCoresp[GameConf.OD_Joy[7]];
-    if (DOWN(si->InputKeys[KEY_BUTTON_R]))
-        *InputByte|= keyCoresp[GameConf.OD_Joy[8]];
-    if (DOWN(si->InputKeys[KEY_BUTTON_L]))
-        *InputByte|= keyCoresp[GameConf.OD_Joy[9]];
+				if (key==si->InputKeys[KEY_UP])
+					*InputByte|= 0x01;
+				if (key==si->InputKeys[KEY_DOWN])
+					*InputByte|= 0x02;
+				if (key==si->InputKeys[KEY_LEFT])
+					*InputByte|= 0x04;
+				if (key==si->InputKeys[KEY_RIGHT])
+					*InputByte|= 0x08;
+			} break;
+			case SDL_KEYUP: {
+				SDLKey key = event.key.keysym.sym;
+				
+				if (key==si->InputKeys[KEY_BUTTON_A])
+					*InputByte&= ~keyCoresp[GameConf.OD_Joy[4]];
+				if (key==si->InputKeys[KEY_BUTTON_B])
+					*InputByte&= ~keyCoresp[GameConf.OD_Joy[5]];
+				if (key==si->InputKeys[KEY_BUTTON_X])
+					*InputByte&= ~keyCoresp[GameConf.OD_Joy[6]];
+				if (key==si->InputKeys[KEY_BUTTON_Y])
+					*InputByte&= ~keyCoresp[GameConf.OD_Joy[7]];
+				if (key==si->InputKeys[KEY_BUTTON_R])
+					*InputByte&= ~keyCoresp[GameConf.OD_Joy[8]];
+				if (key==si->InputKeys[KEY_BUTTON_L])
+					*InputByte&= ~keyCoresp[GameConf.OD_Joy[9]];
+				
+				if (key==si->InputKeys[KEY_START])
+					*InputByte&= ~keyCoresp[GameConf.OD_Joy[10]];
+				if (key==si->InputKeys[KEY_SELECT])
+					*InputByte&= ~keyCoresp[GameConf.OD_Joy[11]];
 
+				if (key==si->InputKeys[KEY_UP])
+					*InputByte&= ~0x01;
+				if (key==si->InputKeys[KEY_DOWN])
+					*InputByte&= ~0x02;
+				if (key==si->InputKeys[KEY_LEFT])
+					*InputByte&= ~0x04;
+				if (key==si->InputKeys[KEY_RIGHT])
+					*InputByte&= ~0x08;
+			} break;
+		}
+    }
+		
+    // if (DOWN(SDLK_ESCAPE))
+    //     m_bIsActive = FALSE;//Flavor exit emulation
 
-    if (DOWN(si->InputKeys[KEY_START]))
-        *InputByte|= keyCoresp[GameConf.OD_Joy[10]];
-    if (DOWN(si->InputKeys[KEY_SELECT]))
-        *InputByte|= keyCoresp[GameConf.OD_Joy[11]];
+    // *InputByte = 0;
 
-    if (DOWN(si->InputKeys[KEY_UP]))
-        *InputByte|= 0x01;
-    if (DOWN(si->InputKeys[KEY_DOWN]))
-        *InputByte|= 0x02;
-    if (DOWN(si->InputKeys[KEY_LEFT]))
-        *InputByte|= 0x04;
-    if (DOWN(si->InputKeys[KEY_RIGHT]))
-        *InputByte|= 0x08;
+    // if (DOWN(si->InputKeys[KEY_BUTTON_A]))
+    //     *InputByte|= keyCoresp[GameConf.OD_Joy[4]];
+    // if (DOWN(si->InputKeys[KEY_BUTTON_B]))
+    //     *InputByte|= keyCoresp[GameConf.OD_Joy[5]];
+    // if (DOWN(si->InputKeys[KEY_BUTTON_X]))
+    //     *InputByte|= keyCoresp[GameConf.OD_Joy[6]];
+    // if (DOWN(si->InputKeys[KEY_BUTTON_Y]))
+    //     *InputByte|= keyCoresp[GameConf.OD_Joy[7]];
+    // if (DOWN(si->InputKeys[KEY_BUTTON_R]))
+    //     *InputByte|= keyCoresp[GameConf.OD_Joy[8]];
+    // if (DOWN(si->InputKeys[KEY_BUTTON_L]))
+    //     *InputByte|= keyCoresp[GameConf.OD_Joy[9]];
+    //
+    //
+    // if (DOWN(si->InputKeys[KEY_START]))
+    //     *InputByte|= keyCoresp[GameConf.OD_Joy[10]];
+    // if (DOWN(si->InputKeys[KEY_SELECT]))
+    //     *InputByte|= keyCoresp[GameConf.OD_Joy[11]];
+    //
+    // if (DOWN(si->InputKeys[KEY_UP]))
+    //     *InputByte|= 0x01;
+    // if (DOWN(si->InputKeys[KEY_DOWN]))
+    //     *InputByte|= 0x02;
+    // if (DOWN(si->InputKeys[KEY_LEFT]))
+    //     *InputByte|= 0x04;
+    // if (DOWN(si->InputKeys[KEY_RIGHT]))
+    //     *InputByte|= 0x08;
 /*
     if (DOWN(SDLK_KP_PLUS))
         increaseVolume();

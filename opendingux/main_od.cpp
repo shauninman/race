@@ -241,7 +241,7 @@ int main(int argc, char *argv[]) {
 			case GF_MAINUI: {
 				SDL_PauseAudio(1);
 				
-				MenuReturnStatus status = ShowMenu(gameName, save_path, actualScreen, kMenuEventKeyUp);
+				MenuReturnStatus status = ShowMenu(gameName, save_path, actualScreen, kMenuEventKeyDown);
 				SDL_Delay(250);
 				
 				if (status==kStatusExitGame) {
