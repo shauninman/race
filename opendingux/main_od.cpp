@@ -37,6 +37,69 @@ unsigned long SDL_UXTimerRead(void) {
 #define AVERAGEHI(AB) ((((AB) & 0xF7DE0000) >> 1) + (((AB) & 0xF7DE) << 15))
 #define AVERAGELO(CD) ((((CD) & 0xF7DE) >> 1) + (((CD) & 0xF7DE0000) >> 17))
 
+
+// 160x152 to 240x228 (40,6)
+void upscale_to_x15_sharp(uint32_t *dst, uint32_t *src) {
+    uint16_t *src_px = (uint16_t*) src; // 160x152
+    uint16_t *dst_px = (uint16_t*) dst; // 320x240
+	uint16_t *next_row, *prev_row;
+	
+	dst_px += 320 * 6;
+	
+	unsigned int x,y,ox=0,oy=0,c,n,skipped=0;
+	for (y=0; y<152; y++) {
+		dst_px += 40;
+		for (x=0; x<160; x++) {
+			c = *src_px;
+			*dst_px = c;
+			dst_px += 1;
+			
+			ox = !ox;
+			if (ox) {
+				n = *(src_px+1); // right
+				if (c>n) *dst_px = n; // always pick the darker
+				else *dst_px = c;
+				dst_px += 1;
+			}
+			src_px += 1;
+		}
+		src_px += 160; // NOTE: somehow src is twice as wide (or tall I guess) as it's supposed to be...?
+		dst_px += 40;
+		
+		if (skipped) {
+			// NOTE: we hit the oy condition on the iteration before this
+			// so we've just drawn the line after the one we skipped
+			// so let's jump back to the beginning of the skipped line
+			dst_px -= 320 * 2;
+			dst_px += 40;
+			prev_row += 40;
+			next_row += 40;
+			for (x=0;x<240;x++) {
+				n = *next_row;
+				c = *prev_row;
+				if (c>n) *dst_px = n; // always pick the darker
+				else *dst_px = c;
+				prev_row += 1;
+				dst_px += 1;
+				next_row += 1;
+			}
+			dst_px += 40;
+			dst_px += 320; // skip to the line after the one we had already drawn
+			skipped = 0;
+		}
+		
+		oy = !oy;
+		if (oy) {
+			// NOTE: we hit this before skipped condition
+			// we are going to skip this interpolated line
+			// and revisit it once we've drawn the next line
+			skipped = 1;
+			prev_row = dst_px - 320;
+			dst_px += 320;
+			next_row = dst_px;
+		}
+	}
+}
 void upscale_to_x15(uint32_t *dst, uint32_t *src)
 {
 	uint32_t midh = 228 / 2;
@@ -119,10 +182,15 @@ void graphics_paint(void) {
 	if(SDL_MUSTLOCK(actualScreen)) SDL_LockSurface(actualScreen);
 	
 	switch (GameConf.m_ScreenRatio) {
-		case 2: // Full screen
+		case SCALER_FULLSCREEN: // Full screen
 			upscale_to_320x240((uint32_t*)actualScreen->pixels, (uint32_t*)screen->pixels);
 			break;
-		case 1: // x1.5
+		case SCALER_15X_SHARP: // x1.5 Sharp
+			xfp = (320 - 240) / 2;
+			yfp = (240 - 228) / 2;
+			upscale_to_x15_sharp((uint32_t*)actualScreen->pixels, (uint32_t*)screen->pixels);
+			break;
+		case SCALER_15X: // x1.5
 			xfp = (320 - 240) / 2;
 			yfp = (240 - 228) / 2;
 			upscale_to_x15((uint32_t*)actualScreen->pixels, (uint32_t*)screen->pixels);
@@ -173,6 +241,8 @@ void initSDL(void) {
 	}
 	SDL_ShowCursor(SDL_DISABLE);
 
+	printf("\n\nactualScreen->format->BitsPerPixel: %i\n\n", actualScreen->format->BitsPerPixel);
+
 	screen = SDL_CreateRGBSurface (actualScreen->flags,
 //		actualScreen->w,
 //		actualScreen->h,
@@ -183,11 +253,13 @@ void initSDL(void) {
 		actualScreen->format->Gmask,
 		actualScreen->format->Bmask,
 		actualScreen->format->Amask);
-								
+		
 	if(screen == NULL) {
 		fprintf(stderr, "Couldn't create surface: %s\n", SDL_GetError());
 		exit(1);
 	}
+
+	printf("screen: %ix%i (initSDL)\n", screen->w,screen->h);
 
 	// Init new layer to add background and text
 	layer = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16, 0,0,0,0);

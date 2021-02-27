@@ -183,7 +183,7 @@ typedef struct {
 } MENU;
 
 char mnuYesNo[2][16] = {"no", "yes"};
-char mnuRatio[3][16] = { "Original size","1.5x","Full screen"};
+char mnuRatio[4][16] = { "Original size","1.5x","1.5x Sharp","Full screen"};
 char mnuLang[2][16] = { "Japanese","English"};
 
 char mnuButtons[8][16] = {
@@ -196,7 +196,7 @@ MENUITEM MainMenuItems[] = {
 	//{"Continue", NULL, 0, NULL, &menuContinue},
 	{"Load state: ", (int*)&cur_state, 8, (char*)&mnuStates, &menuLoadState},
 	{"Save state: ", (int*)&cur_state, 8, (char*)&mnuStates, &menuSaveState},
-	{"Ratio: ", (int *) &GameConf.m_ScreenRatio, 2, (char *) &mnuRatio, NULL},
+	{"Ratio: ", (int *) &GameConf.m_ScreenRatio, 3, (char *) &mnuRatio, NULL},
 	{"Button Settings", NULL, 0, NULL, &screen_showkeymenu},
 	//{"Take Screenshot", NULL, 0, NULL, &menuSaveBmp},
 	{"Show FPS: ", (int *) &GameConf.m_DisplayFPS, 1,(char *) &mnuYesNo, NULL},
@@ -540,13 +540,14 @@ void screen_showtopmenu(void) {
 
 	// if no ratio, put skin
 	switch (GameConf.m_ScreenRatio) {
-		case 0:
+		case SCALER_NONE:
 			screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
 			SDL_Flip(actualScreen);
 			screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
 			SDL_Flip(actualScreen);
 			break;
-		case 1:
+		case SCALER_15X:
+		case SCALER_15X_SHARP:
 			SDL_FillRect(actualScreen, NULL, COLOR_BG);
 			SDL_Flip(actualScreen);
 			SDL_FillRect(actualScreen, NULL, COLOR_BG);
@@ -988,20 +989,6 @@ void system_loadcfg(char *cfg_name) {
   if (fd >= 0) {
 	read(fd, &GameConf, sizeof(GameConf));
     close(fd);
-//	switch (GameConf.m_ScreenRatio) {
-//		case 0:
-//			screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
-//			SDL_Flip(actualScreen);
-//			screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
-//			SDL_Flip(actualScreen);
-//			break;
-//		case 1:
-//			SDL_FillRect(actualScreen, NULL, COLOR_BG);
-//			SDL_Flip(actualScreen);
-//			SDL_FillRect(actualScreen, NULL, COLOR_BG);
-//			SDL_Flip(actualScreen);
-//			break;
-//	}
   }
   else {
 	  // UP  DOWN  LEFT RIGHT  A  B  X  Y  R  L  START  SELECT
@@ -1014,7 +1001,7 @@ void system_loadcfg(char *cfg_name) {
 		GameConf.OD_Joy[10] = 6;  GameConf.OD_Joy[11] = 7;
 	   
 //		GameConf.sndLevel=40;
-		GameConf.m_ScreenRatio=1; // 0 = original size, 1 = 1.5x, 2 = full screen
+		GameConf.m_ScreenRatio=SCALER_15X_SHARP;
 		GameConf.m_DisplayFPS=0; // 0 = no
 		GameConf.m_Language=1; // 0 = Japanese
 		getcwd(GameConf.current_dir_rom, MAX__PATH);

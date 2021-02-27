@@ -47,7 +47,7 @@ extern void writeSaveGameFile();
 
 typedef struct {
   unsigned int m_Language;
-  unsigned int m_ScreenRatio; // 0 = original show, 1 = full screen
+  unsigned int m_ScreenRatio;
   unsigned int OD_Joy[12]; // each key mapping
   unsigned int m_DisplayFPS;
   char current_dir_rom[MAX__PATH];
@@ -93,6 +93,14 @@ extern void mainemuinit();
 
 extern void load_state(int state);
 extern void save_state(int state);
+
+
+typedef enum ScalerType {
+	SCALER_NONE,
+	SCALER_15X,
+	SCALER_15X_SHARP,
+	SCALER_FULLSCREEN,
+} ScalerType;
 
 // menu
 extern void screen_showtopmenu(void);
