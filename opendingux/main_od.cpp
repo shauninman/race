@@ -279,6 +279,7 @@ void initSDL(void) {
 	}
 }
 
+static void* mmenu = NULL;
 
 int main(int argc, char *argv[]) {
 	unsigned int index;
@@ -307,36 +308,44 @@ int main(int argc, char *argv[]) {
 	char save_path[256];
 	sprintf(save_path,"%s/.race-od/%s",getenv("HOME"),strrchr(gameName,'/')+1);
 	strcpy(strrchr(save_path, '.'), ".sta%i");
+	mmenu = dlopen("libmmenu.so", RTLD_LAZY);
 
 	while (m_Flag != GF_GAMEQUIT) {
 		switch (m_Flag) {
 			case GF_MAINUI: {
 				SDL_PauseAudio(1);
 				
-				MenuReturnStatus status = ShowMenu(gameName, save_path, actualScreen, kMenuEventKeyDown);
+				if (mmenu) {
+					ShowMenu_t ShowMenu = (ShowMenu_t)dlsym(mmenu, "ShowMenu");
+					
+					MenuReturnStatus status = ShowMenu(gameName, save_path, actualScreen, kMenuEventKeyDown);
 				
-				if (status==kStatusExitGame) {
-					m_Flag = GF_GAMEQUIT;
-					SDL_FillRect(actualScreen, NULL, 0);
-					SDL_Flip(actualScreen);
+					if (status==kStatusExitGame) {
+						m_Flag = GF_GAMEQUIT;
+						SDL_FillRect(actualScreen, NULL, 0);
+						SDL_Flip(actualScreen);
+					}
+					else if (status==kStatusOpenMenu) {
+						screen_showtopmenu();
+					}
+					else if (status>=kStatusLoadSlot) {
+						int slot = status - kStatusLoadSlot;
+						load_state(slot);
+					}
+					else if (status>=kStatusSaveSlot) {
+						int slot = status - kStatusSaveSlot;
+						save_state(slot);
+					}
+				
+					if (status<kStatusOpenMenu) {
+						m_bIsActive = TRUE;
+						m_Flag = GF_GAMERUNNING;
+						SDL_FillRect(actualScreen, NULL, 0);
+						SDL_Flip(actualScreen);
+					}
 				}
-				else if (status==kStatusOpenMenu) {
+				else {
 					screen_showtopmenu();
-				}
-				else if (status>=kStatusLoadSlot) {
-					int slot = status - kStatusLoadSlot;
-					load_state(slot);
-				}
-				else if (status>=kStatusSaveSlot) {
-					int slot = status - kStatusSaveSlot;
-					save_state(slot);
-				}
-				
-				if (status<kStatusOpenMenu) {
-					m_bIsActive = TRUE;
-					m_Flag = GF_GAMERUNNING;
-					SDL_FillRect(actualScreen, NULL, 0);
-					SDL_Flip(actualScreen);
 				}
 				
 				if (cartridge_IsLoaded()) {

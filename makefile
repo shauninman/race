@@ -55,7 +55,7 @@ CC_OPTS		= -O2 -mips32 -mhard-float -G0 -DNOUNCRYPT  $(F_OPTS)
 endif
 CFLAGS		= -I$(SDL_INCLUDE) -D_OPENDINGUX_ -DZ80 -DTARGET_OD -D_MAX_PATH=2048 -DHOST_FPS=60 $(CC_OPTS)
 CXXFLAGS	= $(CFLAGS) 
-LDFLAGS		= -L$(SDL_LIB) $(CC_OPTS) -lstdc++ -lSDL -lSDL_image -lz -lmmenu -lSDL_ttf
+LDFLAGS		= -L$(SDL_LIB) $(CC_OPTS) -lstdc++ -lSDL -lSDL_image -lz -lSDL_ttf -ldl # -lmmenu
 #LDFLAGS     = $(SDL_LIBS) $(CC_OPTS) -lstdc++ -lSDL -lSDL_image -lSDL_mixer -lSDL_ttf -lz
 endif
 
