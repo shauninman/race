@@ -397,6 +397,8 @@ int main(int argc, char *argv[]) {
 	// Free memory
 	SDL_QuitSubSystem(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
 	
+	if (mmenu) dlclose(mmenu);
+	
 	exit(0);
 }
 
