@@ -14,15 +14,15 @@ CCP         = g++
 LD          = g++
 else
 ifeq "$(OSTYPE)" "oda320"	
-TOOLCHAIN = /opt/trimui
+TOOLCHAIN = /opt/trimui-toolchain
 else
 TOOLCHAIN = /opt/gcw0-toolchain/usr
 endif
 EXESUFFIX = .dge
 EXESUFFIX = 
-CC  = $(TOOLCHAIN)/bin/arm-unknown-linux-gnueabi-gcc
-CCP = $(TOOLCHAIN)/bin/arm-unknown-linux-gnueabi-g++
-LD  = $(TOOLCHAIN)/bin/arm-unknown-linux-gnueabi-g++
+CC  = $(TOOLCHAIN)/bin/arm-buildroot-linux-gnueabi-gcc
+CCP = $(TOOLCHAIN)/bin/arm-buildroot-linux-gnueabi-g++
+LD  = $(TOOLCHAIN)/bin/arm-buildroot-linux-gnueabi-g++
 endif
 
 # add SDL dependencies
@@ -55,7 +55,7 @@ CC_OPTS		= -O2 -mips32 -mhard-float -G0 -DNOUNCRYPT  $(F_OPTS)
 endif
 CFLAGS		= -I$(SDL_INCLUDE) -D_OPENDINGUX_ -DZ80 -DTARGET_OD -D_MAX_PATH=2048 -DHOST_FPS=60 $(CC_OPTS)
 CXXFLAGS	= $(CFLAGS) 
-LDFLAGS		= -L$(SDL_LIB) $(CC_OPTS) -lstdc++ -lSDL -lSDL_image -lz -lSDL_ttf -ldl # -lmmenu
+LDFLAGS		= -L$(SDL_LIB) $(CC_OPTS) -lstdc++ -lSDL -lSDL_ttf -lSDL_image -lz -ldl # -lmmenu
 #LDFLAGS     = $(SDL_LIBS) $(CC_OPTS) -lstdc++ -lSDL -lSDL_image -lSDL_mixer -lSDL_ttf -lz
 endif
 

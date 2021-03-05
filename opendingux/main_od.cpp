@@ -2,6 +2,8 @@
 
 #include "shared.h"
 
+#include <dlfcn.h>
+
 extern "C"
 {
 	#include <mmenu.h>
