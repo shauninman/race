@@ -8,6 +8,8 @@ extern "C"
 {
 	#include <mmenu.h>
 }
+static void* mmenu = NULL;
+static int resume_slot = -1;
 
 extern void ClearInputState();
 
@@ -281,8 +283,6 @@ void initSDL(void) {
 	}
 }
 
-static void* mmenu = NULL;
-
 int main(int argc, char *argv[]) {
 	unsigned int index;
 	double period;
@@ -311,6 +311,10 @@ int main(int argc, char *argv[]) {
 	sprintf(save_path,"%s/.race-od/%s",getenv("HOME"),strrchr(gameName,'/')+1);
 	strcpy(strrchr(save_path, '.'), ".sta%i");
 	mmenu = dlopen("libmmenu.so", RTLD_LAZY);
+	if (mmenu) {
+		ResumeSlot_t ResumeSlot = (ResumeSlot_t)dlsym(mmenu, "ResumeSlot");
+		if (ResumeSlot) resume_slot = ResumeSlot();
+	}
 
 	while (m_Flag != GF_GAMEQUIT) {
 		switch (m_Flag) {
@@ -368,6 +372,7 @@ int main(int argc, char *argv[]) {
 				period = period * 1000000;
 				interval = (int) period;
 				nextTick = SDL_UXTimerRead() + interval;
+
 				SDL_PauseAudio(0);
 				break;
 		
@@ -380,6 +385,11 @@ int main(int argc, char *argv[]) {
 				}
 				
 				tlcs_execute((6*1024*1024) / HOST_FPS);
+				
+				if (resume_slot!=-1) {
+					load_state(resume_slot);
+					resume_slot = -1;
+				}
 				
 				if (m_bIsActive == FALSE) 
 					m_Flag = GF_MAINUI;
