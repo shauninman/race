@@ -316,7 +316,14 @@ int main(int argc, char *argv[]) {
 		if (ResumeSlot) resume_slot = ResumeSlot();
 	}
 
+	unsigned long restore_start = SDL_GetTicks();
 	while (m_Flag != GF_GAMEQUIT) {
+		
+		if (resume_slot!=-1 && SDL_GetTicks()-restore_start>250) { // delay to allow sound to initialize (or something)
+			load_state(resume_slot);
+			resume_slot = -1;
+		}
+		
 		switch (m_Flag) {
 			case GF_MAINUI: {
 				SDL_PauseAudio(1);
@@ -385,11 +392,6 @@ int main(int argc, char *argv[]) {
 				}
 				
 				tlcs_execute((6*1024*1024) / HOST_FPS);
-				
-				if (resume_slot!=-1) {
-					load_state(resume_slot);
-					resume_slot = -1;
-				}
 				
 				if (m_bIsActive == FALSE) 
 					m_Flag = GF_MAINUI;
