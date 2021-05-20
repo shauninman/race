@@ -22,9 +22,13 @@ gamecfg GameConf;
 char gameName[512];
 char current_conf_app[MAX__PATH];
 
-unsigned long nextTick, lastTick = 0, newTick, currentTick, wait;
+unsigned long nextTick, lastTick = 0, newTick, currentTick;
+long wait;
 int FPS = 60; 
 int pastFPS = 0; 
+
+#define FRAMESKIPMAX 4
+unsigned int frameskipFlag = 0;
 
 SDL_Surface *layer,*layerback,*layerbackgrey;
 
@@ -38,114 +42,95 @@ unsigned long SDL_UXTimerRead(void) {
 }
 
 #define AVERAGE(z, x) ((((z) & 0xF7DEF7DE) >> 1) + (((x) & 0xF7DEF7DE) >> 1))
-#define AVERAGEHI(AB) ((((AB) & 0xF7DE0000) >> 1) + (((AB) & 0xF7DE) << 15))
-#define AVERAGELO(CD) ((((CD) & 0xF7DE) >> 1) + (((CD) & 0xF7DE0000) >> 17))
-
+#define AVERAGE16(c1, c2) (((c1) + (c2) + (((c1) ^ (c2)) & 0x0821))>>1)  //More accurate
+#define DARKER(c1, c2) (c1 > c2 ? c2 : c1)
 
 // 160x152 to 240x228 (40,6)
-void upscale_to_x15_sharp(uint32_t *dst, uint32_t *src) {
-    uint16_t *src_px = (uint16_t*) src; // 160x152
-    uint16_t *dst_px = (uint16_t*) dst; // 320x240
-	uint16_t *next_row, *prev_row;
-	
-	dst_px += 320 * 6;
-	
-	unsigned int x,y,ox=0,oy=0,c,n,skipped=0;
-	for (y=0; y<152; y++) {
-		dst_px += 40;
-		for (x=0; x<160; x++) {
-			c = *src_px;
-			*dst_px = c;
-			dst_px += 1;
-			
-			ox = !ox;
-			if (ox) {
-				n = *(src_px+1); // right
-				if (c>n) *dst_px = n; // always pick the darker
-				else *dst_px = c;
-				dst_px += 1;
-			}
-			src_px += 1;
-		}
-		src_px += 160; // NOTE: somehow src is twice as wide (or tall I guess) as it's supposed to be...?
-		dst_px += 40;
-		
-		if (skipped) {
-			// NOTE: we hit the oy condition on the iteration before this
-			// so we've just drawn the line after the one we skipped
-			// so let's jump back to the beginning of the skipped line
-			dst_px -= 320 * 2;
-			dst_px += 40;
-			prev_row += 40;
-			next_row += 40;
-			for (x=0;x<240;x++) {
-				n = *next_row;
-				c = *prev_row;
-				if (c>n) *dst_px = n; // always pick the darker
-				else *dst_px = c;
-				prev_row += 1;
-				dst_px += 1;
-				next_row += 1;
-			}
-			dst_px += 40;
-			dst_px += 320; // skip to the line after the one we had already drawn
-			skipped = 0;
-		}
-		
-		oy = !oy;
-		if (oy) {
-			// NOTE: we hit this before skipped condition
-			// we are going to skip this interpolated line
-			// and revisit it once we've drawn the next line
-			skipped = 1;
-			prev_row = dst_px - 320;
-			dst_px += 320;
-			next_row = dst_px;
+void upscale_to_x15_sharp(uint16_t *dst, uint16_t *src) {
+	register uint_fast16_t a,b,c,d,e,f;
+	uint32_t x,y;
+
+	// centering
+	dst += (320*((240-228)/2)) + (320-240)/2;
+
+	for (y=(152/2); y>0 ; y--, src+=160, dst+=320*2+(320-240))
+	{
+		for (x=(160/4); x>0; x--, src+=4, dst+=6)
+		{
+			a = *(src+0);
+			b = *(src+1);
+			c = *(src+160);
+			d = *(src+161);
+			e = DARKER(a,c);
+			f = DARKER(b,d);
+
+			*(uint32_t*)(dst+  0) = a|(DARKER(a,b)<<16);
+			*(uint32_t*)(dst+320) = e|(DARKER(e,f)<<16);
+			*(uint32_t*)(dst+640) = c|(DARKER(c,d)<<16);
+
+			c = *(src+162);
+			a = *(src+2);
+			e = DARKER(a,c);
+
+			*(uint32_t*)(dst+  2) = b|(a<<16);
+			*(uint32_t*)(dst+322) = f|(e<<16);
+			*(uint32_t*)(dst+642) = d|(c<<16);
+
+			b = *(src+3);
+			d = *(src+163);
+			f = DARKER(b,d);
+
+			*(uint32_t*)(dst+  4) = DARKER(a,b)|(b<<16);
+			*(uint32_t*)(dst+324) = DARKER(e,f)|(f<<16);
+			*(uint32_t*)(dst+644) = DARKER(c,d)|(d<<16);
 		}
 	}
 }
-void upscale_to_x15(uint32_t *dst, uint32_t *src)
+void upscale_to_x15(uint16_t *dst, uint16_t *src)
 {
-	uint32_t midh = 228 / 2;
-	uint32_t Eh = 0;
-	uint32_t source = 0;
-	uint32_t dh = 0;
-	uint32_t y, x;
+	register uint_fast16_t a,b,c,d,e,f;
+	uint32_t x,y;
 
-	dst += ((320 - 240) + 320 * (240 - 228)) / 4;
+	// centering
+	dst += (320*((240-228)/2)) + (320-240)/2;
 
-	for (y = 0; y < 228; y++)
+	for (y=(152/2); y>0 ; y--, src+=160, dst+=320*2+(320-240))
 	{
-		source = dh * BLIT_WIDTH;
-
-		for (x = 0; x < 240/6; x++)
+		for (x=(160/4); x>0; x--, src+=4, dst+=6)
 		{
-			__builtin_prefetch(dst + 4, 1);
-			__builtin_prefetch(src + source + 4, 0);
+			a = *(src+0);
+			b = *(src+1);
+			c = *(src+160);
+			d = *(src+161);
+			e = AVERAGE16(a,c);
+			f = AVERAGE16(b,d);
 
-			register uint32_t ab = src[source] & 0xF7DEF7DE;
-			register uint32_t cd = src[source + 1] & 0xF7DEF7DE;
+			*(uint32_t*)(dst+  0) = a|(AVERAGE16(a,b)<<16);
+			*(uint32_t*)(dst+320) = e|(AVERAGE16(e,f)<<16);
+			*(uint32_t*)(dst+640) = c|(AVERAGE16(c,d)<<16);
 
-			if(Eh >= midh) {
-				ab = AVERAGE(ab, src[source + BLIT_WIDTH]) & 0xF7DEF7DE; // to prevent overflow
-				cd = AVERAGE(cd, src[source + BLIT_WIDTH + 1]) & 0xF7DEF7DE; // to prevent overflow
-			}
+			c = *(src+162);
+			a = *(src+2);
+			e = AVERAGE16(a,c);
 
-			*dst++ = (ab & 0xFFFF) + AVERAGEHI(ab);
-			*dst++ = (ab >> 16) + ((cd & 0xFFFF) << 16);
-			*dst++ = (cd & 0xFFFF0000) + AVERAGELO(cd);
+			*(uint32_t*)(dst+  2) = b|(a<<16);
+			*(uint32_t*)(dst+322) = f|(e<<16);
+			*(uint32_t*)(dst+642) = d|(c<<16);
 
-			source += 2;
+			b = *(src+3);
+			d = *(src+163);
+			f = AVERAGE16(b,d);
+
+			*(uint32_t*)(dst+  4) = AVERAGE16(a,b)|(b<<16);
+			*(uint32_t*)(dst+324) = AVERAGE16(e,f)|(f<<16);
+			*(uint32_t*)(dst+644) = AVERAGE16(c,d)|(d<<16);
 		}
-
-		dst += (320 - 240) / 2;
-		Eh += BLIT_HEIGHT; if(Eh >= 228) { Eh -= 228; dh++; }
 	}
 }
 
 void upscale_to_320x240(uint32_t* dst, uint32_t* src)
 {
-	uint32_t midh = 240 / 2;
+	//uint32_t midh = 240 / 2;
 	uint32_t Eh = 0;
 	uint32_t source = 0;
 	uint32_t dh = 0;
@@ -153,7 +138,7 @@ void upscale_to_320x240(uint32_t* dst, uint32_t* src)
 
 	for (i = 0; i < 240; i++)
 	{
-		source = dh * BLIT_WIDTH;
+		source = dh * BLIT_WIDTH/2;
 		for (j = 0; j < 320/8; j++)
 		{
 			__builtin_prefetch(dst + 4, 1);
@@ -162,9 +147,9 @@ void upscale_to_320x240(uint32_t* dst, uint32_t* src)
 			register uint32_t ab = src[source] & 0xF7DEF7DE;
 			register uint32_t cd = src[source + 1] & 0xF7DEF7DE;
 
-			if (Eh >= midh) {
-				ab = AVERAGE(ab, src[source + BLIT_WIDTH]) & 0xF7DEF7DE; // to prevent overflow
-				cd = AVERAGE(cd, src[source + BLIT_WIDTH + 1]) & 0xF7DEF7DE; // to prevent overflow
+			if (Eh >= BLIT_HEIGHT) { //if (Eh >= midh) {
+				ab = AVERAGE(ab, src[source + BLIT_WIDTH/2]) & 0xF7DEF7DE; // to prevent overflow
+				cd = AVERAGE(cd, src[source + BLIT_WIDTH/2 + 1]) & 0xF7DEF7DE; // to prevent overflow
 			}
 		
 			*dst++ = (ab & 0xFFFF) | (ab << 16);
@@ -192,12 +177,12 @@ void graphics_paint(void) {
 		case SCALER_15X_SHARP: // x1.5 Sharp
 			xfp = (320 - 240) / 2;
 			yfp = (240 - 228) / 2;
-			upscale_to_x15_sharp((uint32_t*)actualScreen->pixels, (uint32_t*)screen->pixels);
+			upscale_to_x15_sharp((uint16_t*)actualScreen->pixels, (uint16_t*)screen->pixels);
 			break;
 		case SCALER_15X: // x1.5
 			xfp = (320 - 240) / 2;
 			yfp = (240 - 228) / 2;
-			upscale_to_x15((uint32_t*)actualScreen->pixels, (uint32_t*)screen->pixels);
+			upscale_to_x15((uint16_t*)actualScreen->pixels, (uint16_t*)screen->pixels);
 			break;
 		default: // Original
 			xfp = (actualScreen->w - BLIT_WIDTH) / 2;
@@ -207,9 +192,9 @@ void graphics_paint(void) {
 			uint16_t *s = (uint16_t*)screen->pixels;
 			for (int y = 0; y < BLIT_HEIGHT; y++)
 			{
-				memmove(d, s, BLIT_WIDTH * sizeof(uint16_t));
-				s += 320;	//screen->w;
-				d += 320;	//actualScreen->w;
+				memcpy(d, s, BLIT_WIDTH * sizeof(uint16_t));
+				s += screen->w;
+				d += actualScreen->w;
 			}
 	}
 	
@@ -247,11 +232,9 @@ void initSDL(void) {
 
 	printf("\n\nactualScreen->format->BitsPerPixel: %i\n\n", actualScreen->format->BitsPerPixel);
 
-	screen = SDL_CreateRGBSurface (actualScreen->flags,
-//		actualScreen->w,
-//		actualScreen->h,
-		BLIT_WIDTH,
-		BLIT_HEIGHT,
+	screen = SDL_CreateRGBSurface (SDL_SWSURFACE,	//actualScreen->flags,
+		BLIT_WIDTH,	//actualScreen->w,
+		BLIT_HEIGHT,	//actualScreen->h,
 		actualScreen->format->BitsPerPixel,
 		actualScreen->format->Rmask,
 		actualScreen->format->Gmask,
@@ -305,6 +288,9 @@ int main(int argc, char *argv[]) {
 	if(argc > 1) {
 		strcpy(gameName,argv[1]);
 		m_Flag = GF_GAMEINIT;
+		if (GameConf.m_ScreenRatio == SCALER_NONE) {
+			screen_draw_noscalerbackground();
+		}
 	}
 	
 	char save_path[256];
@@ -319,7 +305,7 @@ int main(int argc, char *argv[]) {
 	unsigned long restore_start = SDL_GetTicks();
 	while (m_Flag != GF_GAMEQUIT) {
 		
-		if (resume_slot!=-1 && SDL_GetTicks()-restore_start>250) { // delay to allow sound to initialize (or something)
+		if (resume_slot!=-1 && SDL_GetTicks()-restore_start>350) { // delay to allow sound to initialize (or something)
 			load_state(resume_slot);
 			resume_slot = -1;
 		}
@@ -327,12 +313,12 @@ int main(int argc, char *argv[]) {
 		switch (m_Flag) {
 			case GF_MAINUI: {
 				SDL_PauseAudio(1);
-				
+				FreeInput();
 				if (mmenu) {
 					ShowMenu_t ShowMenu = (ShowMenu_t)dlsym(mmenu, "ShowMenu");
 					
 					MenuReturnStatus status = ShowMenu(gameName, save_path, actualScreen, kMenuEventKeyDown);
-				
+					
 					if (status==kStatusExitGame) {
 						m_Flag = GF_GAMEQUIT;
 						SDL_FillRect(actualScreen, NULL, 0);
@@ -349,7 +335,7 @@ int main(int argc, char *argv[]) {
 						int slot = status - kStatusSaveSlot;
 						save_state(slot);
 					}
-				
+					
 					if (status<kStatusOpenMenu) {
 						m_bIsActive = TRUE;
 						m_Flag = GF_GAMERUNNING;
@@ -364,34 +350,53 @@ int main(int argc, char *argv[]) {
 				if (cartridge_IsLoaded()) {
 					SDL_PauseAudio(0);
 					nextTick = SDL_UXTimerRead() + interval;
+					frameskipFlag = 0;
 				}
 			} break;
-
+			
 			case GF_GAMEINIT:
-			    system_sound_chipreset();	//Resets chips
+				system_sound_chipreset();	//Resets chips
 				handleInputFile(gameName);
 				InitInput(NULL);
 				m_Flag = GF_GAMERUNNING;
 				gameCRC = crc32(0, mainrom, m_emuInfo.romSize);
-
+				
 				// Init timing
 				period = 1.0 / 60;
 				period = period * 1000000;
 				interval = (int) period;
 				nextTick = SDL_UXTimerRead() + interval;
-
+				frameskipFlag = 0;
+				
 				SDL_PauseAudio(0);
 				break;
-		
+			
 			case GF_GAMERUNNING:
 				currentTick = SDL_UXTimerRead(); 
 				wait = (nextTick - currentTick);
-				if (wait > 0) {
-					if (wait < 1000000) 
-						usleep(wait);
+				// wait if faster than 2ms
+				if (wait > 2000) {
+					frameskipFlag = 0;
+					if (wait < 1000000) {
+						while (SDL_UXTimerRead() < nextTick) {
+							SDL_Delay(0);
+						}
+					} else {
+						nextTick = currentTick;
+					}
+				// skip frame if delay over 2ms
+				} else if (wait < -2000) {
+					frameskipFlag++;
+					if (frameskipFlag > FRAMESKIPMAX) {
+						frameskipFlag = 0;
+						nextTick = currentTick;
+					}
+				// almost just timing
+				} else {
+					frameskipFlag = 0;
 				}
 				
-				tlcs_execute((6*1024*1024) / HOST_FPS);
+				tlcs_execute((6*1024*1024) / HOST_FPS, frameskipFlag);
 				
 				if (m_bIsActive == FALSE) 
 					m_Flag = GF_MAINUI;

@@ -340,5 +340,5 @@ void UpdateInputState()
 
 void FreeInput()
 {
-
+	*InputByte = 0;
 }

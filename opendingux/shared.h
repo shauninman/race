@@ -80,6 +80,7 @@ extern unsigned long crc32 (unsigned int crc, const unsigned char *buf, unsigned
 
 extern int handleInputFile(char *romName);
 extern BOOL InitInput(HWND hwnd);
+extern void FreeInput();
 
 extern int sound_system_init();
 extern void system_sound_chipreset(void);
@@ -87,7 +88,8 @@ extern void system_sound_chipreset(void);
 extern void ngpc_run();
 extern void flashShutdown();
 
-extern void tlcs_execute(int cycles);
+//extern void tlcs_execute(int cycles);
+extern void tlcs_execute(int cycles, unsigned int frameskipFlag);
 
 extern void mainemuinit();
 
@@ -104,6 +106,7 @@ typedef enum ScalerType {
 
 // menu
 extern void screen_showtopmenu(void);
+extern void screen_draw_noscalerbackground(void);
 extern void print_string_video(int x, int y, const char *s);
 extern void print_string_video_for_fps(int x, int y, const char *s);
 

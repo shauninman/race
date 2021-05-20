@@ -541,10 +541,7 @@ void screen_showtopmenu(void) {
 	// if no ratio, put skin
 	switch (GameConf.m_ScreenRatio) {
 		case SCALER_NONE:
-			screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
-			SDL_Flip(actualScreen);
-			screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
-			SDL_Flip(actualScreen);
+			screen_draw_noscalerbackground();
 			break;
 		case SCALER_15X:
 		case SCALER_15X_SHARP:
@@ -554,6 +551,14 @@ void screen_showtopmenu(void) {
 			SDL_Flip(actualScreen);
 			break;
 	}
+}
+
+// Draw Background for SCALER_NONE
+void screen_draw_noscalerbackground(void) {
+	screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
+	SDL_Flip(actualScreen);
+	screen_prepback(actualScreen, RACE_SKIN, RACE_SKIN_SIZE);
+	SDL_Flip(actualScreen);
 }
 
 //----------------------------------------------------------------------

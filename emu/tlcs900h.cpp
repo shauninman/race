@@ -8945,7 +8945,7 @@ inline int tlcs_step()
 extern unsigned char *ngpScY;
 int ngOverflow = 0;
 
-#define FRAMESKIP    //undef this to do no FRAME skipping
+//#define FRAMESKIP    //undef this to do no FRAME skipping
 
 #ifdef FRAMESKIP
 //#define AUTO_FRAMESKIP
@@ -8956,7 +8956,8 @@ int ngOverflow = 0;
 #ifdef AUTO_FRAMESKIP
 void tlcs_execute(int cycles, int skipFrames)// skipFrames=how many frames to skip for each frame rendered
 #else
-void tlcs_execute(int cycles)
+//void tlcs_execute(int cycles)
+void tlcs_execute(int cycles, unsigned int frameskipFlag)
 #endif
 {
     int elapsed;
@@ -9020,9 +9021,9 @@ void tlcs_execute(int cycles)
             //graphicsBlitLine(frame == 0);
             myGraphicsBlitLine(frame==0);
 #else
-
             //graphicsBlitLine(true);
-            myGraphicsBlitLine(true);
+            //myGraphicsBlitLine(true);
+            myGraphicsBlitLine(frameskipFlag==0);
 #endif
 
             ngpSoundExecute();
@@ -9061,9 +9062,8 @@ void tlcs_execute(int cycles)
 #endif
                 else
                     --frame;
-            }
 #endif
-
+            }
         }
         cycles-= elapsed;
     }
@@ -9119,7 +9119,8 @@ void ngpc_run()
         tlcs_execute((6*1024*1024) / HOST_FPS, skipFrames);
 #else
 
-        tlcs_execute((6*1024*1024) / HOST_FPS);
+	//tlcs_execute((6*1024*1024) / HOST_FPS);
+        tlcs_execute((6*1024*1024) / HOST_FPS, 0);
 #endif
 
     }
