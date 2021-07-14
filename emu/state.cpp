@@ -22,6 +22,7 @@
 #include "state.h"
 #include "tlcs900h.h"
 #include "memory.h"
+#include <unistd.h>
 
 #ifdef PC
 #undef PC
@@ -332,7 +333,7 @@ int state_store(char* filename)
 
   int status = state_store(stream);
   fclose(stream);
-
+  sync();
   return status;
 }
 
